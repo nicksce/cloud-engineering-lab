@@ -19,6 +19,11 @@ variable "ssh_cidr" {
   default     = "0.0.0.0/0"
 }
 
+locals {
+  puppet_server_private_ip  = "10.20.1.10"
+  puppet_client1_private_ip = "10.20.1.11"
+}
+
 data "aws_ami" "rocky_linux_9" {
   most_recent = true
   owners      = ["792107900819"]
@@ -159,6 +164,7 @@ resource "aws_instance" "puppet_server" {
   ami                         = data.aws_ami.rocky_linux_9.id
   instance_type               = "t3.small"
   subnet_id                   = aws_subnet.public.id
+  private_ip                  = local.puppet_server_private_ip
   vpc_security_group_ids      = [aws_security_group.puppet_server.id]
   key_name                    = aws_key_pair.puppet_lab.key_name
   associate_public_ip_address = true
@@ -168,6 +174,9 @@ resource "aws_instance" "puppet_server" {
     set -euxo pipefail
     hostnamectl set-hostname puppet-server
     timedatectl set-timezone Asia/Kolkata
+    cat >> /etc/hosts <<'HOSTS'
+    ${local.puppet_server_private_ip} puppet-server
+    HOSTS
     dnf -y update
     dnf -y install https://yum.puppet.com/puppet8-release-el-9.noarch.rpm
     dnf -y install puppetserver vim
@@ -184,6 +193,7 @@ resource "aws_instance" "puppet_client" {
   ami                         = data.aws_ami.rocky_linux_9.id
   instance_type               = "t3.micro"
   subnet_id                   = aws_subnet.public.id
+  private_ip                  = local.puppet_client1_private_ip
   vpc_security_group_ids      = [aws_security_group.puppet_client.id]
   key_name                    = aws_key_pair.puppet_lab.key_name
   associate_public_ip_address = true
@@ -193,6 +203,10 @@ resource "aws_instance" "puppet_client" {
     set -euxo pipefail
     hostnamectl set-hostname puppet-client1
     timedatectl set-timezone Asia/Kolkata
+    cat >> /etc/hosts <<'HOSTS'
+    ${local.puppet_server_private_ip} puppet-server
+    ${local.puppet_client1_private_ip} puppet-client1
+    HOSTS
     dnf -y update
     dnf -y install https://yum.puppet.com/puppet8-release-el-9.noarch.rpm
     dnf -y install puppet-agent vim
@@ -229,6 +243,10 @@ resource "aws_eip" "puppet_client" {
 
 output "puppet_server_private_ip" {
   value = aws_instance.puppet_server.private_ip
+}
+
+output "puppet_client1_private_ip" {
+  value = aws_instance.puppet_client.private_ip
 }
 
 output "puppet_server_public_ip" {

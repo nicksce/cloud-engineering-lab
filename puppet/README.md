@@ -10,7 +10,8 @@ This example uses Terraform to create a Rocky Linux 9 server and client in a ded
 - `puppet-server`: Rocky Linux 9 x86_64, `t3.small`
 - `puppet-client1`: Rocky Linux 9 x86_64, `t3.micro`
 - Linux hostnames and EC2 `Name` tags are `puppet-server` and `puppet-client1` respectively.
-- On first boot, each instance sets its Linux hostname, sets the timezone to `Asia/Kolkata` (IST), and runs `dnf -y update` through EC2 user data.
+- The instances use private IPs `10.20.1.10` (`puppet-server`) and `10.20.1.11` (`puppet-client1`). Each instance adds both IP-to-hostname mappings to `/etc/hosts` on first boot.
+- On first boot, each instance sets its Linux hostname, sets the timezone to `Asia/Kolkata` (IST), adds the `/etc/hosts` entries, and runs `dnf -y update` through EC2 user data.
 - Each instance receives a dedicated VPC Elastic IP and uses the `puppet-lab-key` EC2 key pair.
 - Instance tags are `Environment=puppet-lab`, `role=puppet-server`, and `role=puppet-client1` respectively.
 
@@ -48,7 +49,7 @@ Show the Terraform outputs:
 terraform output
 ```
 
-The outputs include the server private IP and both Elastic IP addresses. The private addresses stay assigned when the instances are stopped and started. Each Elastic IP remains associated through stop/start, so the public addresses stay consistent.
+The outputs include both private IPs and both Elastic IP addresses. The private addresses stay assigned when the instances are stopped and started. Each Elastic IP remains associated through stop/start, so the public addresses stay consistent.
 
 ## Start and stop instances
 
