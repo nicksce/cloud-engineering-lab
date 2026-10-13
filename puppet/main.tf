@@ -116,6 +116,18 @@ resource "aws_security_group" "puppet_client" {
   }
 }
 
+resource "aws_vpc_security_group_egress_rule" "puppet_server_all_ipv4" {
+  security_group_id = aws_security_group.puppet_server.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "-1"
+}
+
+resource "aws_vpc_security_group_egress_rule" "puppet_client_all_ipv4" {
+  security_group_id = aws_security_group.puppet_client.id
+  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = "-1"
+}
+
 resource "aws_vpc_security_group_ingress_rule" "server_ssh" {
   security_group_id = aws_security_group.puppet_server.id
   description       = "SSH access"
