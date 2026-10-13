@@ -167,6 +167,7 @@ resource "aws_instance" "puppet_server" {
     #!/bin/bash
     set -euxo pipefail
     hostnamectl set-hostname puppet-server
+    timedatectl set-timezone Asia/Kolkata
     dnf -y update
   EOT
 
@@ -189,6 +190,7 @@ resource "aws_instance" "puppet_client" {
     #!/bin/bash
     set -euxo pipefail
     hostnamectl set-hostname puppet-client1
+    timedatectl set-timezone Asia/Kolkata
     dnf -y update
   EOT
 
