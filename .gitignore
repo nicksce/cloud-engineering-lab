@@ -1,0 +1,25 @@
+# Terraform local data and plans
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Local credentials and secrets
+.env
+.env.*
+*.tfvars
+*.tfvars.json
+*.pem
+*.key
+*vault-password*
+*vault*.yml
+*vault*.yaml
+
+# Ansible artifacts
+*.retry
