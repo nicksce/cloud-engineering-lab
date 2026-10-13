@@ -19,13 +19,13 @@ variable "ssh_cidr" {
   default     = "0.0.0.0/0"
 }
 
-data "aws_ami" "rocky_linux_10" {
+data "aws_ami" "rocky_linux_9" {
   most_recent = true
   owners      = ["792107900819"]
 
   filter {
     name   = "name"
-    values = ["Rocky-10-EC2-Base-10.*"]
+    values = ["Rocky-9-EC2-Base-9.*"]
   }
 
   filter {
@@ -106,13 +106,13 @@ resource "aws_security_group" "puppet_server" {
 }
 
 resource "aws_security_group" "puppet_client" {
-  name        = "puppet-lab-client"
+  name        = "puppet-lab-client1"
   description = "SSH access to Puppet client"
   vpc_id      = aws_vpc.puppet_lab.id
 
   tags = {
     Environment = "puppet-lab"
-    role        = "puppet-client"
+    role        = "puppet-client1"
   }
 }
 
@@ -156,12 +156,19 @@ resource "aws_vpc_security_group_ingress_rule" "client_ssh" {
 }
 
 resource "aws_instance" "puppet_server" {
-  ami                         = data.aws_ami.rocky_linux_10.id
+  ami                         = data.aws_ami.rocky_linux_9.id
   instance_type               = "t3.small"
   subnet_id                   = aws_subnet.public.id
   vpc_security_group_ids      = [aws_security_group.puppet_server.id]
   key_name                    = aws_key_pair.puppet_lab.key_name
   associate_public_ip_address = true
+  user_data_replace_on_change = true
+  user_data                   = <<-EOT
+    #!/bin/bash
+    set -euxo pipefail
+    hostnamectl set-hostname puppet-server
+    dnf -y update
+  EOT
 
   tags = {
     Name        = "puppet-server"
@@ -171,17 +178,24 @@ resource "aws_instance" "puppet_server" {
 }
 
 resource "aws_instance" "puppet_client" {
-  ami                         = data.aws_ami.rocky_linux_10.id
+  ami                         = data.aws_ami.rocky_linux_9.id
   instance_type               = "t3.micro"
   subnet_id                   = aws_subnet.public.id
   vpc_security_group_ids      = [aws_security_group.puppet_client.id]
   key_name                    = aws_key_pair.puppet_lab.key_name
   associate_public_ip_address = true
+  user_data_replace_on_change = true
+  user_data                   = <<-EOT
+    #!/bin/bash
+    set -euxo pipefail
+    hostnamectl set-hostname puppet-client1
+    dnf -y update
+  EOT
 
   tags = {
-    Name        = "puppet-client"
+    Name        = "puppet-client1"
     Environment = "puppet-lab"
-    role        = "puppet-client"
+    role        = "puppet-client1"
   }
 }
 
@@ -201,9 +215,9 @@ resource "aws_eip" "puppet_client" {
   instance = aws_instance.puppet_client.id
 
   tags = {
-    Name        = "puppet-client-eip"
+    Name        = "puppet-client1-eip"
     Environment = "puppet-lab"
-    role        = "puppet-client"
+    role        = "puppet-client1"
   }
 }
 
@@ -215,6 +229,6 @@ output "puppet_server_public_ip" {
   value = aws_eip.puppet_server.public_ip
 }
 
-output "puppet_client_public_ip" {
+output "puppet_client1_public_ip" {
   value = aws_eip.puppet_client.public_ip
 }
