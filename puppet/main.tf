@@ -173,14 +173,36 @@ resource "aws_instance" "puppet_client" {
   }
 }
 
+resource "aws_eip" "puppet_server" {
+  domain   = "vpc"
+  instance = aws_instance.puppet_server.id
+
+  tags = {
+    Name        = "puppet-server-eip"
+    Environment = "puppet-lab"
+    role        = "puppet-server"
+  }
+}
+
+resource "aws_eip" "puppet_client" {
+  domain   = "vpc"
+  instance = aws_instance.puppet_client.id
+
+  tags = {
+    Name        = "puppet-client-eip"
+    Environment = "puppet-lab"
+    role        = "puppet-client"
+  }
+}
+
 output "puppet_server_private_ip" {
   value = aws_instance.puppet_server.private_ip
 }
 
 output "puppet_server_public_ip" {
-  value = aws_instance.puppet_server.public_ip
+  value = aws_eip.puppet_server.public_ip
 }
 
 output "puppet_client_public_ip" {
-  value = aws_instance.puppet_client.public_ip
+  value = aws_eip.puppet_client.public_ip
 }

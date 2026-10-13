@@ -9,7 +9,7 @@ This example uses Terraform to create a Rocky Linux 10 server and client in a de
 - Public subnet: `10.20.1.0/24`, with an internet gateway and a default route
 - `puppet-server`: Rocky Linux 10 x86_64, `t3.small`
 - `puppet-client`: Rocky Linux 10 x86_64, `t3.micro`
-- Both instances receive public IPv4 addresses and use the `puppet-lab-key` EC2 key pair.
+- Each instance receives a dedicated VPC Elastic IP and uses the `puppet-lab-key` EC2 key pair.
 - Instance tags are `Environment=puppet-lab`, `role=puppet-server`, and `role=puppet-client` respectively.
 
 The Puppet server security group allows TCP 8140 from the client security group. SSH (TCP 22) is allowed from the `ssh_cidr` variable, whose current default is `0.0.0.0/0`. Restrict this to a trusted source before applying, for example `-var='ssh_cidr=YOUR_PUBLIC_IP/32'`.
@@ -44,7 +44,7 @@ Show the Terraform outputs:
 terraform output
 ```
 
-The outputs include the server private IP and both public IPs. The server and client private IPv4 addresses stay assigned when the instances are stopped and started. AWS releases auto-assigned public IPv4 addresses on stop and assigns new ones on the next start, so retrieve the current addresses from EC2 when needed.
+The outputs include the server private IP and both Elastic IP addresses. The private addresses stay assigned when the instances are stopped and started. Each Elastic IP remains associated through stop/start, so the public addresses stay consistent.
 
 ## Start and stop instances
 
@@ -75,7 +75,7 @@ aws ec2 describe-instances --region ap-south-1 \
   --output table
 ```
 
-Stopped instances do not incur EC2 compute charges, but EBS volumes and other retained AWS resources may continue to incur charges. Public IPv4 addresses change after stop and start.
+Stopped instances do not incur EC2 compute charges, but EBS volumes, Elastic IPs, and other retained resources can continue to incur charges. AWS currently lists public IPv4 addresses, including Elastic IPs, at $0.005 per address-hour; this charge continues while an Elastic IP is associated with a stopped instance. Check current pricing before applying this change. See [AWS VPC pricing](https://aws.amazon.com/vpc/pricing/).
 
 ## Remove this experiment
 
