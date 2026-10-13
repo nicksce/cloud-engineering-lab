@@ -10,7 +10,13 @@ terraform {
 }
 
 provider "aws" {
-  region = "ap-south-1"
+  region = var.aws_region
+}
+
+variable "aws_region" {
+  description = "AWS region for the Puppet lab"
+  type        = string
+  default     = "ap-south-1"
 }
 
 variable "ssh_cidr" {
@@ -175,11 +181,11 @@ resource "aws_instance" "puppet_server" {
     hostnamectl set-hostname puppet-server
     timedatectl set-timezone Asia/Kolkata
     cat >> /etc/hosts <<'HOSTS'
-    ${local.puppet_server_private_ip} puppet-server
+    ${local.puppet_server_private_ip} puppet puppet-server puppet-server.${var.aws_region}.compute.internal
     HOSTS
     dnf -y update
     dnf -y install https://yum.puppet.com/puppet8-release-el-9.noarch.rpm
-    dnf -y install puppetserver vim
+    dnf -y install puppetserver vim traceroute
     cp -fvrad /etc/sysconfig/puppetserver /etc/sysconfig/puppetserver-`date +%F`
     if grep -q '^JAVA_ARGS=' /etc/sysconfig/puppetserver; then
       sed -i 's|^JAVA_ARGS=.*|JAVA_ARGS="-Xms512m -Xmx512m"|' /etc/sysconfig/puppetserver
@@ -187,6 +193,10 @@ resource "aws_instance" "puppet_server" {
       echo 'JAVA_ARGS="-Xms512m -Xmx512m"' >> /etc/sysconfig/puppetserver
     fi
     systemctl enable puppetserver --now
+    cp -a /etc/puppetlabs/puppet/ssl   /etc/puppetlabs/puppet/ssl.backup
+    /opt/puppetlabs/bin/puppetserver ca clean --certname puppet-server.${var.aws_region}.compute.internal
+    /opt/puppetlabs/bin/puppet ssl clean
+    systemctl stop puppetserver
   EOT
 
   tags = {
@@ -211,12 +221,12 @@ resource "aws_instance" "puppet_client" {
     hostnamectl set-hostname puppet-client1
     timedatectl set-timezone Asia/Kolkata
     cat >> /etc/hosts <<'HOSTS'
-    ${local.puppet_server_private_ip} puppet-server
+    ${local.puppet_server_private_ip} puppet puppet-server puppet-server.${var.aws_region}.compute.internal
     ${local.puppet_client1_private_ip} puppet-client1
     HOSTS
     dnf -y update
     dnf -y install https://yum.puppet.com/puppet8-release-el-9.noarch.rpm
-    dnf -y install puppet-agent vim
+    dnf -y install puppet-agent vim traceroute
   EOT
 
   tags = {

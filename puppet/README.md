@@ -4,7 +4,7 @@ This example uses Terraform to create a Rocky Linux 9 server and client in a ded
 
 ## Resources
 
-- Region: `ap-south-1`
+- Region: `aws_region` variable, default `ap-south-1`
 - VPC: `10.20.0.0/16`
 - Public subnet: `10.20.1.0/24`, with an internet gateway and a default route
 - `puppet-server`: Rocky Linux 9 x86_64, `t3.small`
@@ -25,10 +25,12 @@ The Rocky 9 AMI selector differs from the previous Rocky 10 configuration. Apply
 ## Prerequisites
 
 - Terraform 1.5 or newer
-- AWS CLI or SDK credentials with permission to create EC2, VPC, security groups, routing, and key pairs in `ap-south-1`
+- AWS CLI or SDK credentials with permission to create EC2, VPC, security groups, routing, and key pairs in the configured region
 - A dedicated SSH key pair at `~/.ssh/puppet-lab` and `~/.ssh/puppet-lab.pub`
 
 The public key is read from `~/.ssh/puppet-lab.pub` when Terraform runs. The private key is only for SSH access; keep it outside the repository.
+
+Set `aws_region` to choose another AWS region. The server's private DNS hostname in `/etc/hosts` uses this value, for example `puppet-server.ap-south-1.compute.internal`.
 
 ## Provision and inspect
 
@@ -38,11 +40,11 @@ Run these commands from this directory:
 terraform init
 terraform fmt -check
 terraform validate
-terraform plan -var='ssh_cidr=YOUR_PUBLIC_IP/32'
-terraform apply -var='ssh_cidr=YOUR_PUBLIC_IP/32'
+terraform plan -var='ssh_cidr=YOUR_PUBLIC_IP/32' -var='aws_region=ap-south-1'
+terraform apply -var='ssh_cidr=YOUR_PUBLIC_IP/32' -var='aws_region=ap-south-1'
 ```
 
-Replace `YOUR_PUBLIC_IP/32` with a CIDR that is allowed to SSH to the instances. Use the same value for plan and apply. If you intentionally want the current default of `0.0.0.0/0`, omit the `-var` option.
+Replace `YOUR_PUBLIC_IP/32` with a CIDR that is allowed to SSH to the instances. Use the same values for plan and apply. Set `aws_region` to the region where you want the resources. Both variables have defaults, so omit either `-var` option to use the default (`0.0.0.0/0` for SSH and `ap-south-1` for region).
 
 Show the Terraform outputs:
 
