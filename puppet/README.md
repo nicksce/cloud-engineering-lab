@@ -12,6 +12,7 @@ This example uses Terraform to create a Rocky Linux 9 server and client in a ded
 - Linux hostnames and EC2 `Name` tags are `puppet-server` and `puppet-client1` respectively.
 - The instances use private IPs `10.20.1.10` (`puppet-server`) and `10.20.1.11` (`puppet-client1`). Each instance adds both IP-to-hostname mappings to `/etc/hosts` on first boot.
 - On first boot, each instance sets its Linux hostname, sets the timezone to `Asia/Kolkata` (IST), adds the `/etc/hosts` entries, and runs `dnf -y update` through EC2 user data.
+- The Puppet server sets `JAVA_ARGS="-Xms512m -Xmx512m"` in `/etc/sysconfig/puppetserver` before starting the service.
 - Each instance receives a dedicated VPC Elastic IP and uses the `puppet-lab-key` EC2 key pair.
 - Instance tags are `Environment=puppet-lab`, `role=puppet-server`, and `role=puppet-client1` respectively.
 

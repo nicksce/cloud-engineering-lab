@@ -180,6 +180,13 @@ resource "aws_instance" "puppet_server" {
     dnf -y update
     dnf -y install https://yum.puppet.com/puppet8-release-el-9.noarch.rpm
     dnf -y install puppetserver vim
+    cp -fvrad /etc/sysconfig/puppetserver /etc/sysconfig/puppetserver-`date +%F`
+    if grep -q '^JAVA_ARGS=' /etc/sysconfig/puppetserver; then
+      sed -i 's|^JAVA_ARGS=.*|JAVA_ARGS="-Xms512m -Xmx512m"|' /etc/sysconfig/puppetserver
+    else
+      echo 'JAVA_ARGS="-Xms512m -Xmx512m"' >> /etc/sysconfig/puppetserver
+    fi
+    systemctl enable puppetserver --now
   EOT
 
   tags = {
