@@ -169,6 +169,8 @@ resource "aws_instance" "puppet_server" {
     hostnamectl set-hostname puppet-server
     timedatectl set-timezone Asia/Kolkata
     dnf -y update
+    dnf -y install https://yum.puppet.com/puppet8-release-el-9.noarch.rpm
+    dnf -y install puppetserver vim
   EOT
 
   tags = {
@@ -192,6 +194,8 @@ resource "aws_instance" "puppet_client" {
     hostnamectl set-hostname puppet-client1
     timedatectl set-timezone Asia/Kolkata
     dnf -y update
+    dnf -y install https://yum.puppet.com/puppet8-release-el-9.noarch.rpm
+    dnf -y install puppet-agent vim
   EOT
 
   tags = {
