@@ -48,25 +48,17 @@ The outputs include the server private IP and both Elastic IP addresses. The pri
 
 ## Start and stop instances
 
-These commands find the current instance IDs by tags and state, so they do not depend on fixed IDs:
+Use the helper script to find lab instances by their `Environment=puppet-lab` tag and current EC2 state. It does not depend on instance names or IDs. It waits for the requested state transition to finish.
 
 ```bash
-INSTANCE_IDS=$(aws ec2 describe-instances --region ap-south-1 \
-  --filters 'Name=tag:Environment,Values=puppet-lab' \
-            'Name=instance-state-name,Values=stopped' \
-  --query 'Reservations[].Instances[].InstanceId' --output text)
-aws ec2 start-instances --region ap-south-1 --instance-ids $INSTANCE_IDS
+./manage-instances.sh start
+./manage-instances.sh stop
 ```
 
-```bash
-INSTANCE_IDS=$(aws ec2 describe-instances --region ap-south-1 \
-  --filters 'Name=tag:Environment,Values=puppet-lab' \
-            'Name=instance-state-name,Values=running' \
-  --query 'Reservations[].Instances[].InstanceId' --output text)
-aws ec2 stop-instances --region ap-south-1 --instance-ids $INSTANCE_IDS
-```
+The script defaults to `ap-south-1`. Override the region with `--region` or the `AWS_REGION` / `AWS_DEFAULT_REGION` environment variable. AWS CLI credentials must permit `DescribeInstances`, `StartInstances`, `StopInstances`, and the relevant EC2 wait operations.
 
-Get current addresses and states:
+## Current addresses and states
+
 
 ```bash
 aws ec2 describe-instances --region ap-south-1 \
