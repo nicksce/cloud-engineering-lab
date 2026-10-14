@@ -193,10 +193,6 @@ resource "aws_instance" "puppet_server" {
       echo 'JAVA_ARGS="-Xms512m -Xmx512m"' >> /etc/sysconfig/puppetserver
     fi
     systemctl enable puppetserver --now
-    cp -a /etc/puppetlabs/puppet/ssl   /etc/puppetlabs/puppet/ssl.backup
-    /opt/puppetlabs/bin/puppetserver ca clean --certname puppet-server.${var.aws_region}.compute.internal
-    /opt/puppetlabs/bin/puppet ssl clean
-    systemctl stop puppetserver
   EOT
 
   tags = {

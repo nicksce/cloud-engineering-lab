@@ -55,6 +55,17 @@ terraform output
 
 The outputs include both private IPs and both Elastic IP addresses. The private addresses stay assigned when the instances are stopped and started. Each Elastic IP remains associated through stop/start, so the public addresses stay consistent.
 
+## Monitor first-boot setup
+
+After an instance is reachable over SSH, connect with the Rocky Linux account and follow cloud-init's output log to watch package updates and Puppet installation:
+
+```bash
+ssh -i ~/.ssh/puppet-lab rocky@SERVER_PUBLIC_IP
+sudo tail -f /var/log/cloud-init-output.log
+```
+
+Replace `SERVER_PUBLIC_IP` with the instance's Elastic IP. The detailed cloud-init log is available at `/var/log/cloud-init.log`. Cloud-init writes user-data script output to `cloud-init-output.log` by default. See the [cloud-init logging documentation](https://cloudinit.readthedocs.io/en/latest/topics/logging.html).
+
 ## Start and stop instances
 
 Use the helper script to find lab instances by their `Environment=puppet-lab` tag and current EC2 state. It does not depend on instance names or IDs. It waits for the requested state transition to finish.
