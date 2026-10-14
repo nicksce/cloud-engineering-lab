@@ -15,7 +15,7 @@ This example uses Terraform to create a Rocky Linux 9 server and client in a ded
 - The server installs and starts `puppetserver`; the client installs `puppet-agent`, configures the server and its certname, waits for the server, then runs `puppet agent --test` on first boot.
 - The server CA autosigns only `puppet-client1.<aws_region>.compute.internal`. This is convenient for the lab but is not strong identity verification: any host allowed to reach the Puppet CA could request that certname. Keep TCP 8140 restricted to trusted client security groups.
 - The Puppet server sets `JAVA_ARGS="-Xms512m -Xmx512m"` in `/etc/sysconfig/puppetserver` before starting the service.
-- The Puppet server installs r10k and writes its configuration to `/etc/puppetlabs/r10k/r10k.yaml`. Replace `YOUR_GITHUB_USERNAME` in the repository URL with your GitHub username, then add `/root/.ssh/puppet_github_deploy.pub` as a deploy key or account SSH key with access to that repository.
+- The Puppet server installs r10k and writes its configuration to `/etc/puppetlabs/r10k/r10k.yaml`. The repository owner is the `github_username` variable, which defaults to `nicksce`; add `/root/.ssh/puppet_github_deploy.pub` as a deploy key or account SSH key with access to that repository.
 - Each instance receives a dedicated VPC Elastic IP and uses the `puppet-lab-key` EC2 key pair.
 - Instance tags are `Environment=puppet-lab`, `role=puppet-server`, and `role=puppet-client1` respectively.
 
@@ -47,7 +47,7 @@ terraform plan -var='ssh_cidr=YOUR_PUBLIC_IP/32' -var='aws_region=ap-south-1'
 terraform apply -var='ssh_cidr=YOUR_PUBLIC_IP/32' -var='aws_region=ap-south-1'
 ```
 
-Replace `YOUR_PUBLIC_IP/32` with a CIDR that is allowed to SSH to the instances. Use the same values for plan and apply. Set `aws_region` to the region where you want the resources. Both variables have defaults, so omit either `-var` option to use the default (`0.0.0.0/0` for SSH and `ap-south-1` for region).
+Replace `YOUR_PUBLIC_IP/32` with a CIDR that is allowed to SSH to the instances. Use the same values for plan and apply. `ssh_cidr`, `aws_region`, and `github_username` default to `0.0.0.0/0`, `ap-south-1`, and `nicksce`, respectively. Omit their `-var` options to use these defaults, or pass `-var='github_username=YOUR_GITHUB_USERNAME'` to use another repository owner.
 
 Show the Terraform outputs:
 
@@ -70,7 +70,7 @@ Replace `SERVER_PUBLIC_IP` with the instance's Elastic IP. The detailed cloud-in
 
 ## Connect r10k to GitHub and deploy
 
-After cloud-init finishes, connect to `puppet-server`. The r10k configuration uses the SSH URL for the `puppet-control-repo` repository. Replace `YOUR_GITHUB_USERNAME` in `puppet/main.tf` before provisioning if needed.
+After cloud-init finishes, connect to `puppet-server`. The r10k configuration uses the SSH URL for the `puppet-control-repo` repository. Override `github_username` if the repository is owned by a different GitHub user, for example `-var='github_username=YOUR_GITHUB_USERNAME'`.
 
 Print the generated public key and copy its output:
 

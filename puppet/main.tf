@@ -19,6 +19,12 @@ variable "aws_region" {
   default     = "ap-south-1"
 }
 
+variable "github_username" {
+  description = "GitHub username that owns the Puppet control repository"
+  type        = string
+  default     = "nicksce"
+}
+
 variable "ssh_cidr" {
   description = "CIDR range allowed to SSH to both instances"
   type        = string
@@ -216,13 +222,12 @@ resource "aws_instance" "puppet_server" {
 
     :sources:
       :puppet:
-        remote: 'git@github.com:YOUR_GITHUB_USERNAME/puppet-control-repo.git'
+        remote: 'git@github.com:${var.github_username}/puppet-control-repo.git'
         basedir: '/etc/puppetlabs/code/environments'
         prefix: false
     R10K
     chmod 644 /etc/puppetlabs/r10k/r10k.yaml
     cp -a /etc/puppetlabs/code/environments/production /etc/puppetlabs/code/environments/production.backup
-    r10k deploy environment production -v info
   EOT
 
   tags = {
