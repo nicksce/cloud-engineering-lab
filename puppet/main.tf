@@ -192,6 +192,10 @@ resource "aws_instance" "puppet_server" {
     else
       echo 'JAVA_ARGS="-Xms512m -Xmx512m"' >> /etc/sysconfig/puppetserver
     fi
+    cat > /etc/puppetlabs/puppet/autosign.conf <<'AUTOSIGN'
+    puppet-client1.${var.aws_region}.compute.internal
+    AUTOSIGN
+    chmod 0644 /etc/puppetlabs/puppet/autosign.conf
     systemctl enable puppetserver --now
   EOT
 
@@ -218,11 +222,25 @@ resource "aws_instance" "puppet_client" {
     timedatectl set-timezone Asia/Kolkata
     cat >> /etc/hosts <<'HOSTS'
     ${local.puppet_server_private_ip} puppet puppet-server puppet-server.${var.aws_region}.compute.internal
-    ${local.puppet_client1_private_ip} puppet-client1
+    ${local.puppet_client1_private_ip} puppet-client1 puppet-client1.${var.aws_region}.compute.internal
     HOSTS
     dnf -y update
     dnf -y install https://yum.puppet.com/puppet8-release-el-9.noarch.rpm
     dnf -y install puppet-agent vim traceroute
+    /opt/puppetlabs/bin/puppet config set server puppet-server.${var.aws_region}.compute.internal --section main
+    /opt/puppetlabs/bin/puppet config set certname puppet-client1.${var.aws_region}.compute.internal --section main
+    for attempt in $(seq 1 180); do
+      if timeout 3 bash -c '</dev/tcp/${local.puppet_server_private_ip}/8140' 2>/dev/null; then
+        break
+      fi
+      sleep 10
+    done
+    if ! timeout 3 bash -c '</dev/tcp/${local.puppet_server_private_ip}/8140' 2>/dev/null; then
+      echo "Puppet Server did not become reachable at ${local.puppet_server_private_ip}:8140" >&2
+      exit 1
+    fi
+    /opt/puppetlabs/bin/puppet agent --test
+    systemctl enable puppet --now
   EOT
 
   tags = {

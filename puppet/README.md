@@ -12,7 +12,8 @@ This example uses Terraform to create a Rocky Linux 9 server and client in a ded
 - Linux hostnames and EC2 `Name` tags are `puppet-server` and `puppet-client1` respectively.
 - The instances use private IPs `10.20.1.10` (`puppet-server`) and `10.20.1.11` (`puppet-client1`). Each instance adds both IP-to-hostname mappings to `/etc/hosts` on first boot.
 - On first boot, each instance sets its Linux hostname, sets the timezone to `Asia/Kolkata` (IST), adds the `/etc/hosts` entries, updates packages with `dnf -y update`, and installs the Puppet software through EC2 user data.
-- The server installs and starts `puppetserver`; the client installs `puppet-agent`.
+- The server installs and starts `puppetserver`; the client installs `puppet-agent`, configures the server and its certname, waits for the server, then runs `puppet agent --test` on first boot.
+- The server CA autosigns only `puppet-client1.<aws_region>.compute.internal`. This is convenient for the lab but is not strong identity verification: any host allowed to reach the Puppet CA could request that certname. Keep TCP 8140 restricted to trusted client security groups.
 - The Puppet server sets `JAVA_ARGS="-Xms512m -Xmx512m"` in `/etc/sysconfig/puppetserver` before starting the service.
 - Each instance receives a dedicated VPC Elastic IP and uses the `puppet-lab-key` EC2 key pair.
 - Instance tags are `Environment=puppet-lab`, `role=puppet-server`, and `role=puppet-client1` respectively.
@@ -21,7 +22,7 @@ The Puppet server security group allows TCP 8140 from the client security group.
 
 The AMI data source looks up the latest matching Rocky Linux 9 x86_64 base image from the Rocky Linux AWS account. The image ID can therefore change between plans.
 
-The Rocky 9 AMI selector differs from the previous Rocky 10 configuration. Applying the Rocky 9 and first-boot configuration replaces both EC2 instances. Changing the client hostname also replaces the client instance. Back up any data you need first; the root EBS volumes are deleted when their instances are terminated. Review the plan to confirm the Elastic IP allocations are retained and re-associated. Private IPs can change when instances are replaced. Package updates also make first boot take longer. Additional clients can follow the `puppet-client2` naming pattern.
+The Rocky 9 AMI selector differs from the previous Rocky 10 configuration. Applying the Rocky 9 and first-boot configuration replaces both EC2 instances. Changes to either instance's user data also replace that instance; this includes the automatic Puppet registration setup. Changing the client hostname also replaces the client instance. Back up any data you need first; the root EBS volumes are deleted when their instances are terminated. Review the plan to confirm the Elastic IP allocations are retained and re-associated. Private IPs can change when instances are replaced. Package updates also make first boot take longer. Additional clients can follow the `puppet-client2` naming pattern.
 
 ## Prerequisites
 
