@@ -98,6 +98,17 @@ To inspect Puppet's active environment and code directory:
 /opt/puppetlabs/bin/puppet config print codedir
 ```
 
+## Pull configuration manually from the client
+
+After deploying the production environment with r10k, connect to `puppet-client1` and run the agent once to retrieve and apply its catalog:
+
+```bash
+ssh -i ~/.ssh/puppet-lab rocky@CLIENT_PUBLIC_IP
+sudo /opt/puppetlabs/bin/puppet agent --test
+```
+
+Replace `CLIENT_PUBLIC_IP` with the client's Elastic IP. The command may also be run from an existing client shell; use `sudo` unless you are already root.
+
 ## Start and stop instances
 
 Use the helper script to find lab instances by their `Environment=puppet-lab` tag and current EC2 state. It does not depend on instance names or IDs. It waits for the requested state transition to finish.
