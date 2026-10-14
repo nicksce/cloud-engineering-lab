@@ -6,7 +6,7 @@ This repository is a collection of independent Terraform examples and experiment
 
 | Directory | Description |
 | --- | --- |
-| [`puppet/`](puppet/README.md) | Creates a Rocky Linux 9 Puppet lab network with one server instance and one client instance. This example provisions AWS infrastructure only; it does not install Puppet software or use Ansible. |
+| [`puppet/`](puppet/README.md) | Creates a Rocky Linux 9 Puppet lab with one server and one client. Terraform installs Puppet Server and Puppet Agent through EC2 user data and updates packages on first boot; it does not use Ansible. |
 
 Each example README describes its prerequisites, resources, variables, and commands. Add future experiments in new directories and document them in both the directory's README and the table above.
 

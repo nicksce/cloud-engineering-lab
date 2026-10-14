@@ -1,6 +1,6 @@
 # Puppet lab infrastructure
 
-This example uses Terraform to create a Rocky Linux 9 server and client in a dedicated VPC in AWS. Terraform provisions the infrastructure only; it does not install or configure Puppet software. This example does not use Ansible.
+This example uses Terraform to create a Rocky Linux 9 server and client in a dedicated VPC in AWS. EC2 user data updates packages with `dnf -y update` and installs Puppet Server on the server and Puppet Agent on the client during first boot. The Puppet Server service is enabled and started by the script. Ansible is not used.
 
 ## Resources
 
@@ -11,7 +11,8 @@ This example uses Terraform to create a Rocky Linux 9 server and client in a ded
 - `puppet-client1`: Rocky Linux 9 x86_64, `t3.micro`
 - Linux hostnames and EC2 `Name` tags are `puppet-server` and `puppet-client1` respectively.
 - The instances use private IPs `10.20.1.10` (`puppet-server`) and `10.20.1.11` (`puppet-client1`). Each instance adds both IP-to-hostname mappings to `/etc/hosts` on first boot.
-- On first boot, each instance sets its Linux hostname, sets the timezone to `Asia/Kolkata` (IST), adds the `/etc/hosts` entries, and runs `dnf -y update` through EC2 user data.
+- On first boot, each instance sets its Linux hostname, sets the timezone to `Asia/Kolkata` (IST), adds the `/etc/hosts` entries, updates packages with `dnf -y update`, and installs the Puppet software through EC2 user data.
+- The server installs and starts `puppetserver`; the client installs `puppet-agent`.
 - The Puppet server sets `JAVA_ARGS="-Xms512m -Xmx512m"` in `/etc/sysconfig/puppetserver` before starting the service.
 - Each instance receives a dedicated VPC Elastic IP and uses the `puppet-lab-key` EC2 key pair.
 - Instance tags are `Environment=puppet-lab`, `role=puppet-server`, and `role=puppet-client1` respectively.

@@ -5,7 +5,7 @@
 - The repository root catalogs independent AWS Terraform examples; each example has its own configuration, state, provider lock file, and README.
 - Read the selected example's documentation and configuration before editing. Keep changes isolated to that example unless the user asks otherwise.
 - Update the root README when examples are added or renamed.
-- The current `puppet/` example provisions only AWS infrastructure for a Rocky Linux 9 Puppet lab. Do not add Puppet installation automation or Ansible unless requested.
+- The current `puppet/` example provisions a Rocky Linux 9 Puppet lab and uses EC2 user data to update packages, install Puppet Server and Puppet Agent, and start the server service. It does not use Ansible.
 
 ## Terraform and AWS changes
 
