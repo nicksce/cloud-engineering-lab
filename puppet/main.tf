@@ -185,7 +185,7 @@ resource "aws_instance" "puppet_server" {
     HOSTS
     dnf -y update
     dnf -y install https://yum.puppet.com/puppet8-release-el-9.noarch.rpm
-    dnf -y install puppetserver vim traceroute
+    dnf -y install puppetserver vim traceroute git ruby rubygems ruby-devel gcc make libffi libffi-devel
     cp -fvrad /etc/sysconfig/puppetserver /etc/sysconfig/puppetserver-`date +%F`
     if grep -q '^JAVA_ARGS=' /etc/sysconfig/puppetserver; then
       sed -i 's|^JAVA_ARGS=.*|JAVA_ARGS="-Xms512m -Xmx512m"|' /etc/sysconfig/puppetserver
@@ -197,6 +197,32 @@ resource "aws_instance" "puppet_server" {
     AUTOSIGN
     chmod 0644 /etc/puppetlabs/puppet/autosign.conf
     systemctl enable puppetserver --now
+    gem install r10k
+    mkdir -p /root/.ssh
+    chmod 700 /root/.ssh
+    ssh-keygen -t ed25519 -f /root/.ssh/puppet_github_deploy -C "puppet-server-github-deploy" -N ""
+    tee /root/.ssh/config >/dev/null <<'EOF'
+    Host github.com
+        User git
+        IdentityFile /root/.ssh/puppet_github_deploy
+        IdentitiesOnly yes
+    EOF
+    chmod 600 /root/.ssh/config
+    chmod 600 /root/.ssh/puppet_github_deploy
+    mkdir -p /etc/puppetlabs/r10k
+    tee /etc/puppetlabs/r10k/r10k.yaml >/dev/null <<'R10K'
+    ---
+    :cachedir: '/var/cache/r10k'
+
+    :sources:
+      :puppet:
+        remote: 'git@github.com:YOUR_GITHUB_USERNAME/puppet-control-repo.git'
+        basedir: '/etc/puppetlabs/code/environments'
+        prefix: false
+    R10K
+    chmod 644 /etc/puppetlabs/r10k/r10k.yaml
+    cp -a /etc/puppetlabs/code/environments/production /etc/puppetlabs/code/environments/production.backup
+    r10k deploy environment production -v info
   EOT
 
   tags = {
