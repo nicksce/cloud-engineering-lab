@@ -68,6 +68,36 @@ sudo tail -f /var/log/cloud-init-output.log
 
 Replace `SERVER_PUBLIC_IP` with the instance's Elastic IP. The detailed cloud-init log is available at `/var/log/cloud-init.log`. Cloud-init writes user-data script output to `cloud-init-output.log` by default. See the [cloud-init logging documentation](https://cloudinit.readthedocs.io/en/latest/topics/logging.html).
 
+## Connect r10k to GitHub and deploy
+
+After cloud-init finishes, connect to `puppet-server`. The r10k configuration uses the SSH URL for the `puppet-control-repo` repository. Replace `YOUR_GITHUB_USERNAME` in `puppet/main.tf` before provisioning if needed.
+
+Print the generated public key and copy its output:
+
+```bash
+sudo cat /root/.ssh/puppet_github_deploy.pub
+```
+
+In GitHub, open the `puppet-control-repo` repository and go to **Settings → Deploy keys → Add deploy key**. Add a title such as `Puppet Server`, paste the public key, and leave **Allow write access** unchecked. Then open a root shell on the server and test the SSH connection:
+
+```bash
+sudo -i
+ssh -T git@github.com
+```
+
+GitHub may respond that authentication succeeded but it does not provide shell access; that response confirms the key was accepted. Deploy the production environment:
+
+```bash
+r10k deploy environment production -v info
+```
+
+To inspect Puppet's active environment and code directory:
+
+```bash
+/opt/puppetlabs/bin/puppet config print environment
+/opt/puppetlabs/bin/puppet config print codedir
+```
+
 ## Start and stop instances
 
 Use the helper script to find lab instances by their `Environment=puppet-lab` tag and current EC2 state. It does not depend on instance names or IDs. It waits for the requested state transition to finish.
