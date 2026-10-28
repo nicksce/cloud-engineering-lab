@@ -14,6 +14,12 @@ Each example README describes its prerequisites, resources, variables, and comma
 
 More from the author: [website](https://nikunjmaster.org) · [technology page](https://nikunjmaster.org/technology).
 
+## Pair programming
+
+This project is maintained through pair programming with OpenAI Codex. To learn
+how to set up OpenAI Codex with Visual Studio Code, follow the
+[Codex pair programming guide](https://nikunjmaster.org/technology/codex-pair-programming).
+
 ## Working with an example
 
 For the Puppet lab, for example:
