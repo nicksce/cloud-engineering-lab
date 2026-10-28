@@ -181,6 +181,9 @@ resource "aws_instance" "puppet_server" {
   key_name                    = aws_key_pair.puppet_lab.key_name
   associate_public_ip_address = true
   user_data_replace_on_change = true
+  root_block_device {
+    volume_type = "gp3"
+  }
   user_data                   = <<-EOT
     #!/bin/bash
     set -euxo pipefail
@@ -202,19 +205,7 @@ resource "aws_instance" "puppet_server" {
     puppet-client1.${var.aws_region}.compute.internal
     AUTOSIGN
     chmod 0644 /etc/puppetlabs/puppet/autosign.conf
-    systemctl enable puppetserver --now
     gem install r10k
-    mkdir -p /root/.ssh
-    chmod 700 /root/.ssh
-    ssh-keygen -t ed25519 -f /root/.ssh/puppet_github_deploy -C "puppet-server-github-deploy" -N ""
-    tee /root/.ssh/config >/dev/null <<'EOF'
-    Host github.com
-        User git
-        IdentityFile /root/.ssh/puppet_github_deploy
-        IdentitiesOnly yes
-    EOF
-    chmod 600 /root/.ssh/config
-    chmod 600 /root/.ssh/puppet_github_deploy
     mkdir -p /etc/puppetlabs/r10k
     tee /etc/puppetlabs/r10k/r10k.yaml >/dev/null <<'R10K'
     ---
@@ -222,12 +213,13 @@ resource "aws_instance" "puppet_server" {
 
     :sources:
       :puppet:
-        remote: 'git@github.com:${var.github_username}/puppet-control-repo.git'
+        remote: 'https://github.com/${var.github_username}/puppet-control-repo.git'
         basedir: '/etc/puppetlabs/code/environments'
         prefix: false
     R10K
     chmod 644 /etc/puppetlabs/r10k/r10k.yaml
-    cp -a /etc/puppetlabs/code/environments/production /etc/puppetlabs/code/environments/production.backup
+    r10k deploy environment production -v info
+    systemctl enable puppetserver --now
   EOT
 
   tags = {
@@ -246,6 +238,9 @@ resource "aws_instance" "puppet_client" {
   key_name                    = aws_key_pair.puppet_lab.key_name
   associate_public_ip_address = true
   user_data_replace_on_change = true
+  root_block_device {
+    volume_type = "gp3"
+  }
   user_data                   = <<-EOT
     #!/bin/bash
     set -euxo pipefail

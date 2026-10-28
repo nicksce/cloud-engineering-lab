@@ -13,13 +13,14 @@ This example uses Terraform to create a Rocky Linux 9 server and client in a ded
 - Public subnet: `10.20.1.0/24`, with an internet gateway and a default route
 - `puppet-server`: Rocky Linux 9 x86_64, `t3.small`
 - `puppet-client1`: Rocky Linux 9 x86_64, `t3.micro`
+- Both instances use `gp3` root EBS volumes.
 - Linux hostnames and EC2 `Name` tags are `puppet-server` and `puppet-client1` respectively.
 - The instances use private IPs `10.20.1.10` (`puppet-server`) and `10.20.1.11` (`puppet-client1`). Each instance adds both IP-to-hostname mappings to `/etc/hosts` on first boot.
 - On first boot, each instance sets its Linux hostname, sets the timezone to `Asia/Kolkata` (IST), adds the `/etc/hosts` entries, updates packages with `dnf -y update`, and installs the Puppet software through EC2 user data.
-- The server installs and starts `puppetserver`; the client installs `puppet-agent`, configures the server and its certname, waits for the server, then runs `puppet agent --test` on first boot.
+- The server installs r10k, deploys the `production` environment from the public control repository, then starts `puppetserver`; the client installs `puppet-agent`, configures the server and its certname, waits for the server, then runs `puppet agent --test` on first boot.
 - The server CA autosigns only `puppet-client1.<aws_region>.compute.internal`. This is convenient for the lab but is not strong identity verification: any host allowed to reach the Puppet CA could request that certname. Keep TCP 8140 restricted to trusted client security groups.
 - The Puppet server sets `JAVA_ARGS="-Xms512m -Xmx512m"` in `/etc/sysconfig/puppetserver` before starting the service.
-- The Puppet server installs r10k and writes its configuration to `/etc/puppetlabs/r10k/r10k.yaml`. The repository owner is the `github_username` variable, which defaults to `nicksce`; add `/root/.ssh/puppet_github_deploy.pub` as a deploy key or account SSH key with access to that repository.
+- The Puppet server installs r10k and writes its configuration to `/etc/puppetlabs/r10k/r10k.yaml`. It clones the public control repository over HTTPS, using the `github_username` variable (default `nicksce`); no GitHub SSH key is needed.
 - Each instance receives a dedicated VPC Elastic IP and uses the `puppet-lab-key` EC2 key pair.
 - Instance tags are `Environment=puppet-lab`, `role=puppet-server`, and `role=puppet-client1` respectively.
 
@@ -72,24 +73,9 @@ sudo tail -f /var/log/cloud-init-output.log
 
 Replace `SERVER_PUBLIC_IP` with the instance's Elastic IP. The detailed cloud-init log is available at `/var/log/cloud-init.log`. Cloud-init writes user-data script output to `cloud-init-output.log` by default. See the [cloud-init logging documentation](https://cloudinit.readthedocs.io/en/latest/topics/logging.html).
 
-## Connect r10k to GitHub and deploy
+## Update the r10k production environment
 
-After cloud-init finishes, connect to `puppet-server`. The r10k configuration uses the SSH URL for the `puppet-control-repo` repository. Override `github_username` if the repository is owned by a different GitHub user, for example `-var='github_username=YOUR_GITHUB_USERNAME'`.
-
-Print the generated public key and copy its output:
-
-```bash
-sudo cat /root/.ssh/puppet_github_deploy.pub
-```
-
-In GitHub, open the `puppet-control-repo` repository and go to **Settings → Deploy keys → Add deploy key**. Add a title such as `Puppet Server`, paste the public key, and leave **Allow write access** unchecked. Then open a root shell on the server and test the SSH connection:
-
-```bash
-sudo -i
-ssh -T git@github.com
-```
-
-GitHub may respond that authentication succeeded but it does not provide shell access; that response confirms the key was accepted. Deploy the production environment:
+The first production deployment runs automatically during `puppet-server` first boot, before the Puppet Server service starts. To pull newer repository changes later, connect to the server and rerun the deployment. The public repository is cloned over HTTPS, so no GitHub key is needed:
 
 ```bash
 r10k deploy environment production -v info
