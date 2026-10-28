@@ -25,15 +25,75 @@ variable "github_username" {
   default     = "nicksce"
 }
 
+variable "github_puppet_control_repository" {
+  description = "Public GitHub repository containing the Puppet control repo"
+  type        = string
+  default     = "puppet-control-repo"
+}
+
 variable "ssh_cidr" {
   description = "CIDR range allowed to SSH to both instances"
   type        = string
   default     = "0.0.0.0/0"
 }
 
-locals {
-  puppet_server_private_ip  = "10.20.1.10"
-  puppet_client1_private_ip = "10.20.1.11"
+variable "vpc_cidr" {
+  description = "CIDR block for the Puppet lab VPC"
+  type        = string
+  default     = "10.20.0.0/16"
+}
+
+variable "public_subnet_cidr" {
+  description = "CIDR block for the public subnet"
+  type        = string
+  default     = "10.20.1.0/24"
+}
+
+variable "puppet_server_private_ip" {
+  description = "Private IPv4 address assigned to the Puppet server"
+  type        = string
+  default     = "10.20.1.10"
+}
+
+variable "puppet_client1_private_ip" {
+  description = "Private IPv4 address assigned to Puppet client 1"
+  type        = string
+  default     = "10.20.1.11"
+}
+
+variable "puppet_server_instance_type" {
+  description = "EC2 instance type for the Puppet server"
+  type        = string
+  default     = "t3.small"
+}
+
+variable "puppet_client1_instance_type" {
+  description = "EC2 instance type for Puppet client 1"
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "root_volume_type" {
+  description = "EBS type used for both instances' root volumes"
+  type        = string
+  default     = "gp3"
+
+  validation {
+    condition     = contains(["gp2", "gp3"], var.root_volume_type)
+    error_message = "root_volume_type must be either gp2 or gp3."
+  }
+}
+
+variable "ssh_key_name" {
+  description = "Name of the EC2 key pair used by both instances"
+  type        = string
+  default     = "puppet-lab-key"
+}
+
+variable "ssh_public_key_path" {
+  description = "Path to the SSH public key registered with EC2"
+  type        = string
+  default     = "~/.ssh/puppet-lab.pub"
 }
 
 data "aws_ami" "rocky_linux_9" {
@@ -57,12 +117,12 @@ data "aws_ami" "rocky_linux_9" {
 }
 
 resource "aws_key_pair" "puppet_lab" {
-  key_name   = "puppet-lab-key"
-  public_key = file(pathexpand("~/.ssh/puppet-lab.pub"))
+  key_name   = var.ssh_key_name
+  public_key = file(pathexpand(var.ssh_public_key_path))
 }
 
 resource "aws_vpc" "puppet_lab" {
-  cidr_block           = "10.20.0.0/16"
+  cidr_block           = var.vpc_cidr
   enable_dns_support   = true
   enable_dns_hostnames = true
 
@@ -74,7 +134,7 @@ resource "aws_vpc" "puppet_lab" {
 
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.puppet_lab.id
-  cidr_block              = "10.20.1.0/24"
+  cidr_block              = var.public_subnet_cidr
   map_public_ip_on_launch = true
 
   tags = {
@@ -174,15 +234,15 @@ resource "aws_vpc_security_group_ingress_rule" "client_ssh" {
 
 resource "aws_instance" "puppet_server" {
   ami                         = data.aws_ami.rocky_linux_9.id
-  instance_type               = "t3.small"
+  instance_type               = var.puppet_server_instance_type
   subnet_id                   = aws_subnet.public.id
-  private_ip                  = local.puppet_server_private_ip
+  private_ip                  = var.puppet_server_private_ip
   vpc_security_group_ids      = [aws_security_group.puppet_server.id]
   key_name                    = aws_key_pair.puppet_lab.key_name
   associate_public_ip_address = true
   user_data_replace_on_change = true
   root_block_device {
-    volume_type = "gp3"
+    volume_type = var.root_volume_type
   }
   user_data                   = <<-EOT
     #!/bin/bash
@@ -190,7 +250,7 @@ resource "aws_instance" "puppet_server" {
     hostnamectl set-hostname puppet-server
     timedatectl set-timezone Asia/Kolkata
     cat >> /etc/hosts <<'HOSTS'
-    ${local.puppet_server_private_ip} puppet puppet-server puppet-server.${var.aws_region}.compute.internal
+    ${var.puppet_server_private_ip} puppet puppet-server puppet-server.${var.aws_region}.compute.internal
     HOSTS
     dnf -y update
     dnf -y install https://yum.puppet.com/puppet8-release-el-9.noarch.rpm
@@ -213,7 +273,7 @@ resource "aws_instance" "puppet_server" {
 
     :sources:
       :puppet:
-        remote: 'https://github.com/${var.github_username}/puppet-control-repo.git'
+        remote: 'https://github.com/${var.github_username}/${var.github_puppet_control_repository}.git'
         basedir: '/etc/puppetlabs/code/environments'
         prefix: false
     R10K
@@ -231,15 +291,15 @@ resource "aws_instance" "puppet_server" {
 
 resource "aws_instance" "puppet_client" {
   ami                         = data.aws_ami.rocky_linux_9.id
-  instance_type               = "t3.micro"
+  instance_type               = var.puppet_client1_instance_type
   subnet_id                   = aws_subnet.public.id
-  private_ip                  = local.puppet_client1_private_ip
+  private_ip                  = var.puppet_client1_private_ip
   vpc_security_group_ids      = [aws_security_group.puppet_client.id]
   key_name                    = aws_key_pair.puppet_lab.key_name
   associate_public_ip_address = true
   user_data_replace_on_change = true
   root_block_device {
-    volume_type = "gp3"
+    volume_type = var.root_volume_type
   }
   user_data                   = <<-EOT
     #!/bin/bash
@@ -247,8 +307,8 @@ resource "aws_instance" "puppet_client" {
     hostnamectl set-hostname puppet-client1
     timedatectl set-timezone Asia/Kolkata
     cat >> /etc/hosts <<'HOSTS'
-    ${local.puppet_server_private_ip} puppet puppet-server puppet-server.${var.aws_region}.compute.internal
-    ${local.puppet_client1_private_ip} puppet-client1 puppet-client1.${var.aws_region}.compute.internal
+    ${var.puppet_server_private_ip} puppet puppet-server puppet-server.${var.aws_region}.compute.internal
+    ${var.puppet_client1_private_ip} puppet-client1 puppet-client1.${var.aws_region}.compute.internal
     HOSTS
     dnf -y update
     dnf -y install https://yum.puppet.com/puppet8-release-el-9.noarch.rpm
@@ -256,13 +316,13 @@ resource "aws_instance" "puppet_client" {
     /opt/puppetlabs/bin/puppet config set server puppet-server.${var.aws_region}.compute.internal --section main
     /opt/puppetlabs/bin/puppet config set certname puppet-client1.${var.aws_region}.compute.internal --section main
     for attempt in $(seq 1 180); do
-      if timeout 3 bash -c '</dev/tcp/${local.puppet_server_private_ip}/8140' 2>/dev/null; then
+      if timeout 3 bash -c '</dev/tcp/${var.puppet_server_private_ip}/8140' 2>/dev/null; then
         break
       fi
       sleep 10
     done
-    if ! timeout 3 bash -c '</dev/tcp/${local.puppet_server_private_ip}/8140' 2>/dev/null; then
-      echo "Puppet Server did not become reachable at ${local.puppet_server_private_ip}:8140" >&2
+    if ! timeout 3 bash -c '</dev/tcp/${var.puppet_server_private_ip}/8140' 2>/dev/null; then
+      echo "Puppet Server did not become reachable at ${var.puppet_server_private_ip}:8140" >&2
       exit 1
     fi
     /opt/puppetlabs/bin/puppet agent --test

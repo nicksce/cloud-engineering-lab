@@ -9,13 +9,13 @@ This example uses Terraform to create a Rocky Linux 9 server and client in a ded
 ## Resources
 
 - Region: `aws_region` variable, default `ap-south-1`
-- VPC: `10.20.0.0/16`
-- Public subnet: `10.20.1.0/24`, with an internet gateway and a default route
+- VPC: `10.20.0.0/16` by default
+- Public subnet: `10.20.1.0/24` by default, with an internet gateway and a default route
 - `puppet-server`: Rocky Linux 9 x86_64, `t3.small`
 - `puppet-client1`: Rocky Linux 9 x86_64, `t3.micro`
 - Both instances use `gp3` root EBS volumes.
 - Linux hostnames and EC2 `Name` tags are `puppet-server` and `puppet-client1` respectively.
-- The instances use private IPs `10.20.1.10` (`puppet-server`) and `10.20.1.11` (`puppet-client1`). Each instance adds both IP-to-hostname mappings to `/etc/hosts` on first boot.
+- The instances use private IPs `10.20.1.10` (`puppet-server`) and `10.20.1.11` (`puppet-client1`) by default. Each instance adds both IP-to-hostname mappings to `/etc/hosts` on first boot.
 - On first boot, each instance sets its Linux hostname, sets the timezone to `Asia/Kolkata` (IST), adds the `/etc/hosts` entries, updates packages with `dnf -y update`, and installs the Puppet software through EC2 user data.
 - The server installs r10k, deploys the `production` environment from the public control repository, then starts `puppetserver`; the client installs `puppet-agent`, configures the server and its certname, waits for the server, then runs `puppet agent --test` on first boot.
 - The server CA autosigns only `puppet-client1.<aws_region>.compute.internal`. This is convenient for the lab but is not strong identity verification: any host allowed to reach the Puppet CA could request that certname. Keep TCP 8140 restricted to trusted client security groups.
@@ -23,6 +23,28 @@ This example uses Terraform to create a Rocky Linux 9 server and client in a ded
 - The Puppet server installs r10k and writes its configuration to `/etc/puppetlabs/r10k/r10k.yaml`. It clones the public control repository over HTTPS, using the `github_username` variable (default `nicksce`); no GitHub SSH key is needed.
 - Each instance receives a dedicated VPC Elastic IP and uses the `puppet-lab-key` EC2 key pair.
 - Instance tags are `Environment=puppet-lab`, `role=puppet-server`, and `role=puppet-client1` respectively.
+
+## Input variables
+
+All variables have defaults, so the lab can be provisioned without supplying a `.tfvars` file. Override values with `-var` or a `.tfvars` file.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `aws_region` | `ap-south-1` | AWS region for all resources |
+| `github_username` | `nicksce` | GitHub account that owns the control repository |
+| `github_puppet_control_repository` | `puppet-control-repo` | Public control repository name, without `.git` |
+| `ssh_cidr` | `0.0.0.0/0` | Source CIDR allowed to SSH to both instances; narrow this to a trusted range |
+| `vpc_cidr` | `10.20.0.0/16` | VPC address range |
+| `public_subnet_cidr` | `10.20.1.0/24` | Public subnet address range |
+| `puppet_server_private_ip` | `10.20.1.10` | Puppet server private IPv4 address |
+| `puppet_client1_private_ip` | `10.20.1.11` | Client 1 private IPv4 address |
+| `puppet_server_instance_type` | `t3.small` | Puppet server EC2 size |
+| `puppet_client1_instance_type` | `t3.micro` | Client 1 EC2 size |
+| `root_volume_type` | `gp3` | Root EBS volume type (`gp2` or `gp3`) |
+| `ssh_key_name` | `puppet-lab-key` | EC2 key pair name |
+| `ssh_public_key_path` | `~/.ssh/puppet-lab.pub` | Local path to the public key Terraform registers with EC2 |
+
+The private IP values must be available addresses inside `public_subnet_cidr`.
 
 The Puppet server security group allows TCP 8140 from the client security group. SSH (TCP 22) is allowed from the `ssh_cidr` variable, whose current default is `0.0.0.0/0`. Restrict this to a trusted source before applying, for example `-var='ssh_cidr=YOUR_PUBLIC_IP/32'`.
 
@@ -34,9 +56,9 @@ The Rocky 9 AMI selector differs from the previous Rocky 10 configuration. Apply
 
 - Terraform 1.5 or newer
 - AWS CLI or SDK credentials with permission to create EC2, VPC, security groups, routing, and key pairs in the configured region
-- A dedicated SSH key pair at `~/.ssh/puppet-lab` and `~/.ssh/puppet-lab.pub`
+- An SSH key pair; its public key defaults to `~/.ssh/puppet-lab.pub` and can be changed with `ssh_public_key_path`
 
-The public key is read from `~/.ssh/puppet-lab.pub` when Terraform runs. The private key is only for SSH access; keep it outside the repository.
+Terraform reads the public key from `ssh_public_key_path` when it runs. The private key is only for SSH access; keep it outside the repository.
 
 Set `aws_region` to choose another AWS region. The server's private DNS hostname in `/etc/hosts` uses this value, for example `puppet-server.ap-south-1.compute.internal`.
 
@@ -52,7 +74,7 @@ terraform plan -var='ssh_cidr=YOUR_PUBLIC_IP/32' -var='aws_region=ap-south-1'
 terraform apply -var='ssh_cidr=YOUR_PUBLIC_IP/32' -var='aws_region=ap-south-1'
 ```
 
-Replace `YOUR_PUBLIC_IP/32` with a CIDR that is allowed to SSH to the instances. Use the same values for plan and apply. `ssh_cidr`, `aws_region`, and `github_username` default to `0.0.0.0/0`, `ap-south-1`, and `nicksce`, respectively. Omit their `-var` options to use these defaults, or pass `-var='github_username=YOUR_GITHUB_USERNAME'` to use another repository owner.
+Replace `YOUR_PUBLIC_IP/32` with a CIDR that is allowed to SSH to the instances. Use the same values for plan and apply. The commands show the default `aws_region`; other variables also have defaults as listed above. Override any variable with an additional `-var`, for example `-var='github_username=YOUR_GITHUB_USERNAME'` or `-var='puppet_client1_instance_type=t3.medium'`.
 
 Show the Terraform outputs:
 
