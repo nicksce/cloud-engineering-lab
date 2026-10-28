@@ -6,9 +6,13 @@ This repository is a collection of independent Terraform examples and experiment
 
 | Directory | Description |
 | --- | --- |
-| [`puppet/`](puppet/README.md) | Creates a Rocky Linux 9 Puppet lab with one server and one client. Terraform installs Puppet Server and Puppet Agent through EC2 user data and updates packages on first boot; it does not use Ansible. |
+| [`puppet/`](puppet/README.md) | Creates a Rocky Linux 9 Puppet lab with one server and one client. Terraform installs Puppet Server and Puppet Agent through EC2 user data and updates packages on first boot; it does not use Ansible. Read the [Puppet lab article](https://nikunjmaster.org/technology/aws-terraform-puppet-lab). |
 
 Each example README describes its prerequisites, resources, variables, and commands. Add future experiments in new directories and document them in both the directory's README and the table above.
+
+## Website
+
+More from the author: [website](https://nikunjmaster.org) · [technology page](https://nikunjmaster.org/technology).
 
 ## Working with an example
 

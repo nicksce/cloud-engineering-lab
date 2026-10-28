@@ -2,6 +2,10 @@
 
 This example uses Terraform to create a Rocky Linux 9 server and client in a dedicated VPC in AWS. EC2 user data updates packages with `dnf -y update` and installs Puppet Server on the server and Puppet Agent on the client during first boot. The Puppet Server service is enabled and started by the script. Ansible is not used.
 
+## Related article
+
+For a walkthrough of this lab, see [AWS Terraform Puppet Lab](https://nikunjmaster.org/technology/aws-terraform-puppet-lab).
+
 ## Architecture
 
 ![Puppet lab architecture](architecture.png)
