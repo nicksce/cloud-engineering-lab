@@ -161,3 +161,9 @@ Review the plan carefully before confirming. This deletes the instances and netw
 ## State and GitHub
 
 This example uses local Terraform state in this directory. State files and backups are ignored by the repository `.gitignore`; do not add them to Git. The `.terraform.lock.hcl` in this directory should be committed so provider selection is reproducible. For shared or long-lived use, configure an access-controlled remote backend with encryption, versioning, and locking.
+
+
+
+
+
+This is Sanjay's feature
